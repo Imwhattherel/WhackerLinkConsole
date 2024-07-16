@@ -40,12 +40,31 @@
                         <div class="card-body">
                             <h5 class="card-title">Channel: <%= channel.name %></h5>
                             <p class="card-text">System: <%= channel.system %></p>
-                            <p class="card-text">TGID: <%= channel.tgid %></p>
                             <button class="btn btn-secondary toggle-connection" data-channel="<%= channel.name %>" data-system="<%= channel.system %>">On/Off</button>
                             <button class="btn btn-primary transmit" data-channel="<%= channel.name %>" data-system="<%= channel.system %>">Transmit</button>
-                            <button class="btn btn-warning mcc-alert" data-channel="<%= channel.name %>" data-system="<%= channel.system %>" data-file="MCC_ALERT 1.pcm">ALERT 1</button>
-                            <button class="btn btn-warning mcc-alert" data-channel="<%= channel.name %>" data-system="<%= channel.system %>" data-file="MCC_ALERT 2.pcm">ALERT 2</button>
-                            <button class="btn btn-warning mcc-alert" data-channel="<%= channel.name %>" data-system="<%= channel.system %>" data-file="MCC_ALERT 3.pcm">ALERT 3</button>
+                            <div class="input-group mb-3 align-items-center">
+                                <select class="custom-select alert-tone-select" data-channel="<%= channel.name %>" data-system="<%= channel.system %>">
+                                    <option selected>Alert Tone</option>
+                                    <option value="MCC_ALERT 1.pcm">ALERT 1</option>
+                                    <option value="MCC_ALERT 2.pcm">ALERT 2</option>
+                                    <option value="MCC_ALERT 3.pcm">ALERT 3</option>
+                                    <option value="MCC_ALERT 4.pcm">ALERT 4</option>
+                                    <option value="MCC_ALERT 5.pcm">ALERT 5</option>
+                                    <option value="MCC_ALERT 6.pcm">ALERT 6</option>
+                                    <option value="MCC_ALERT 7.pcm">ALERT 7</option>
+                                    <option value="MCC_ALERT 8.pcm">ALERT 8</option>
+                                    <option value="MCC_ALERT 9.pcm">ALERT 9</option>
+                                    <option value="MCC_ALERT 10.pcm">ALERT 10</option>
+                                    <option value="MCC_ALERT 11.pcm">ALERT 11</option>
+                                    <option value="MCC_ALERT 12.pcm">ALERT 12</option>
+                                    <option value="MCC_ALERT 13.pcm">ALERT 13</option>
+                                    <option value="MCC_ALERT 14.pcm">ALERT 14</option>
+                                    <option value="MCC_ALERT 15.pcm">ALERT 15</option>
+                                </select>
+                                <div class="input-group-append">
+                                    <button class="btn btn-warning send-alert align-middle" type="button" data-channel="<%= channel.name %>" data-system="<%= channel.system %>">Send</button>
+                                </div>
+                            </div>
                             <div class="channel-status mt-2" id="status-<%= channel.name %>"></div>
                         </div>
                     </div>
@@ -76,7 +95,8 @@
     document.addEventListener('DOMContentLoaded', function () {
         const toggleButtons = document.querySelectorAll('.toggle-connection');
         const transmitButtons = document.querySelectorAll('.transmit');
-        const alertButtons = document.querySelectorAll('.mcc-alert');
+        const alertToneSelect = document.getElementById('.alert-tone-select');
+        const sendAlertButtons = document.querySelectorAll('.send-alert');
         const codeplugSelect = document.getElementById('codeplugSelect');
 
 
@@ -85,13 +105,19 @@
             window.location.href = `/codeplug/${selectedCodeplug}`;
         });
 
-        alertButtons.forEach(button => {
+        sendAlertButtons.forEach(button => {
             button.addEventListener('click', async function () {
                 const channelName = this.getAttribute('data-channel');
                 const systemName = this.getAttribute('data-system');
-                const fileName = this.getAttribute('data-file');
                 const channel = JSON.parse(this.closest('.card').getAttribute('data-channel-object'));
                 const system = systems.find(s => s.name === systemName);
+                const selectElement = this.closest('.input-group').querySelector('.alert-tone-select');
+                const fileName = selectElement.value;
+
+                if (fileName === "Alert Tone") {
+                    console.error("Please select a valid alert tone.");
+                    return;
+                }
 
                 try {
                     const response = await fetch(`/audio/${fileName}`);
@@ -243,8 +269,8 @@
         isTxingTone = true;
 
         connections[channel.name].send(JSON.stringify({ type: packetToNumber("GRP_VCH_REQ"), data: { DstId: channel.tgid, SrcId: system.rid } }));
-
         function sendChunk() {
+            console.log("Offset: " + offset + "; Length: " + pcmData.length)
             if (offset < pcmData.length) {
                 let chunk = pcmData.slice(offset, offset + chunkSize);
                 if (chunk.length < chunkSize) {
@@ -268,10 +294,13 @@
                 offset += chunkSize;
                 requestAnimationFrame(sendChunk);
             } else {
-                connections[channel.name].send(JSON.stringify({ type: packetToNumber("GRP_VCH_RLS"), data: { DstId: channel.tgid, SrcId: system.rid } }));
-                isTxing = false;
-                isTxingTone = false;
-                currentKeyedChannel = null;
+                setTimeout(() => {
+                    console.log("Release tone");
+                    connections[channel.name].send(JSON.stringify({ type: packetToNumber("GRP_VCH_RLS"), data: { DstId: channel.tgid, SrcId: system.rid } }));
+                    isTxing = false;
+                    isTxingTone = false;
+                    currentKeyedChannel = null;
+                }, 1500);
             }
         }
 
