@@ -68,6 +68,13 @@
         const toggleButtons = document.querySelectorAll('.toggle-connection');
         const transmitButtons = document.querySelectorAll('.transmit');
         const alertButtons = document.querySelectorAll('.mcc-alert');
+        const codeplugSelect = document.getElementById('codeplugSelect');
+
+
+        codeplugSelect.addEventListener('change', function () {
+            const selectedCodeplug = this.value;
+            window.location.href = `/codeplug/${selectedCodeplug}`;
+        });
 
         alertButtons.forEach(button => {
             button.addEventListener('click', async function () {
