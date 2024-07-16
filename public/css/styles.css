@@ -6,7 +6,7 @@ body {
     background-color: #343a40;
     color: white;
     border-radius: 5%;
-    
+
 }
 
 .card-body {
@@ -22,25 +22,23 @@ body {
 }
 
 header {
-    background-color: #343a40; /* Background color for the header */
-    padding: 10px 0; /* Optional: Add padding to the header */
-    text-align: center; /* Center align text and logo horizontally */
+    background-color: #343a40;
+    padding: 10px 0;
+    text-align: center;
 }
 
-/* CSS for the navigation inside the header */
 header nav {
-    margin-bottom: 10px; /* Optional: Add margin below the navigation */
+    margin-bottom: 10px;
 }
 
-/* CSS for the logo */
 .logo {
-    display: inline-block; /* Ensures the logo container doesn't take full width */
+    display: inline-block;
 }
 
 .logo img {
-    max-width: 250px; /* Set maximum width for the logo */
-    height: auto; /* Maintain aspect ratio */
-    vertical-align: middle; /* Align the logo vertically */
+    max-width: 250px;
+    height: auto;
+    vertical-align: middle;
 }
 
 .btn {
@@ -71,4 +69,14 @@ header nav {
     color: rgb(255, 255, 255);
     background-color: red;
     animation: flash 1s infinite;
+}
+
+.align-items-center {
+    display: flex;
+    align-items: center;
+}
+
+.input-group-append {
+    margin-left: -1px;
+    margin-bottom: 8px;
 }
