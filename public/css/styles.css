@@ -1,10 +1,12 @@
 body {
-    background-color: #f8f9fa;
+    background-color: #6b83a8;
 }
 
 .card {
     background-color: #343a40;
     color: white;
+    border-radius: 5%;
+    
 }
 
 .card-body {
@@ -13,6 +15,60 @@ body {
     align-items: center;
 }
 
+
+.card-text {
+    margin: 1px;
+
+}
+
+header {
+    background-color: #343a40; /* Background color for the header */
+    padding: 10px 0; /* Optional: Add padding to the header */
+    text-align: center; /* Center align text and logo horizontally */
+}
+
+/* CSS for the navigation inside the header */
+header nav {
+    margin-bottom: 10px; /* Optional: Add margin below the navigation */
+}
+
+/* CSS for the logo */
+.logo {
+    display: inline-block; /* Ensures the logo container doesn't take full width */
+}
+
+.logo img {
+    max-width: 250px; /* Set maximum width for the logo */
+    height: auto; /* Maintain aspect ratio */
+    vertical-align: middle; /* Align the logo vertically */
+}
+
 .btn {
+    margin-top: 8px;
+
+}
+
+@keyframes flash {
+    0% {
+        background-color: rgb(30, 117, 8);
+    }
+    50% {
+        background-color: rgb(90, 185, 13);
+    }
+    100% {
+        background-color: rgb(30, 117, 8);
+    }
+}
+
+
+.id {
     margin-top: 10px;
+    width: 150px;
+    height: 30px;
+    border-radius: 20%;
+    text-align: center;
+    font-weight: bold;
+    color: rgb(255, 255, 255);
+    background-color: red;
+    animation: flash 1s infinite;
 }

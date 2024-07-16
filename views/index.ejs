@@ -5,10 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="/css/styles.css">
+    <link rel="icon" type="image/x-icon" href="/imgs/favicon.ico">
     <title>WhackerLink Dispatch Console</title>
+    <header>
+        <div class="logo">
+        <img src="/imgs/whackerlink-logo.png" alt="WhackerLink Logo">
+    </div>
+</header>
+
 </head>
 <body>
-<%- include('partials/header') %>
+ 
+<!-- <%- include('partials/header') %> -->
 <div class="container">
     <div class="row my-3">
         <div class="col-md-12">
@@ -35,8 +43,9 @@
                             <p class="card-text">TGID: <%= channel.tgid %></p>
                             <button class="btn btn-secondary toggle-connection" data-channel="<%= channel.name %>" data-system="<%= channel.system %>">On/Off</button>
                             <button class="btn btn-primary transmit" data-channel="<%= channel.name %>" data-system="<%= channel.system %>">Transmit</button>
-                            <button class="btn btn-warning mcc-alert" data-channel="<%= channel.name %>" data-system="<%= channel.system %>" data-file="MCC_ALERT 2.pcm">MCC_ALERT 2</button>
-                            <button class="btn btn-warning mcc-alert" data-channel="<%= channel.name %>" data-system="<%= channel.system %>" data-file="MCC_ALERT 3.pcm">MCC_ALERT 3</button>
+                            <button class="btn btn-warning mcc-alert" data-channel="<%= channel.name %>" data-system="<%= channel.system %>" data-file="MCC_ALERT 1.pcm">ALERT 1</button>
+                            <button class="btn btn-warning mcc-alert" data-channel="<%= channel.name %>" data-system="<%= channel.system %>" data-file="MCC_ALERT 2.pcm">ALERT 2</button>
+                            <button class="btn btn-warning mcc-alert" data-channel="<%= channel.name %>" data-system="<%= channel.system %>" data-file="MCC_ALERT 3.pcm">ALERT 3</button>
                             <div class="channel-status mt-2" id="status-<%= channel.name %>"></div>
                         </div>
                     </div>
@@ -149,7 +158,7 @@
                         } else if (packet.type === packetToNumber("GRP_VCH_RSP")) {
                             if (channel.tgid === packet.data.DstId && packet.data.SrcId !== system.rid) {
                                 if (statusDiv) {
-                                    statusDiv.innerHTML = `<p>ID: ${packet.data.SrcId}</p>`;
+                                    statusDiv.innerHTML = `<p class="id">ID: ${packet.data.SrcId}</p>`;
                                 }
                             } else if (channel.tgid === packet.data.DstId && packet.data.SrcId === system.rid)
                             {
