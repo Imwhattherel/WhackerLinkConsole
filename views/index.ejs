@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/styles.css">
+    <title>WhackerLink Dispatch Console</title>
+</head>
+<body>
+<%- include('partials/header') %>
+<div class="container">
+    <div class="row my-3">
+        <div class="col-md-12">
+            <div class="input-group">
+                <div class="input-group-prepend">
+                    <label class="input-group-text" for="codeplugSelect">Codeplug</label>
+                </div>
+                <select class="custom-select" id="codeplugSelect">
+                    <% codeplugs.forEach(cp => { %>
+                        <option value="<%= cp.name %>" <%= cp.name === selectedCodeplug.name ? 'selected' : '' %>><%= cp.name %></option>
+                    <% }); %>
+                </select>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <% selectedCodeplug.data.zones.forEach(zone => { %>
+            <% zone.channels.forEach(channel => { %>
+                <div class="col-md-4">
+                    <div class="card mb-3" data-channel-object='<%= JSON.stringify(channel) %>'>
+                        <div class="card-body">
+                            <h5 class="card-title">Channel: <%= channel.name %></h5>
+                            <p class="card-text">System: <%= channel.system %></p>
+                            <p class="card-text">TGID: <%= channel.tgid %></p>
+                            <button class="btn btn-secondary toggle-connection" data-channel="<%= channel.name %>" data-system="<%= channel.system %>">On/Off</button>
+                            <button class="btn btn-primary transmit" data-channel="<%= channel.name %>" data-system="<%= channel.system %>">Transmit</button>
+                            <button class="btn btn-warning mcc-alert" data-channel="<%= channel.name %>" data-system="<%= channel.system %>" data-file="MCC_ALERT 2.pcm">MCC_ALERT 2</button>
+                            <button class="btn btn-warning mcc-alert" data-channel="<%= channel.name %>" data-system="<%= channel.system %>" data-file="MCC_ALERT 3.pcm">MCC_ALERT 3</button>
+                            <div class="channel-status mt-2" id="status-<%= channel.name %>"></div>
+                        </div>
+                    </div>
+                </div>
+            <% }); %>
+        <% }); %>
+    </div>
+</div>
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script src="/js/PacketType.js"></script>
+<script src="/js/PcmPlayer.js"></script>
+<script src="/js/PcmRecorder.js"></script>
+<script>
+    const EXPECTED_PCM_LENGTH = 1600;
+    const CHUNK_SIZE = 320;
+    const systems = <%- JSON.stringify(selectedCodeplug.data.systems) %>;
+    let connections = {};
+    let pcmPlayer = null;
+    let isIsRecording = false;
+    let currentKeyedChannel = null;
+    let currentKeyedSystem = null;
+    let isTxing = false;
+    let isTxingTone = false;
+    let audioBuffer = [];
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const toggleButtons = document.querySelectorAll('.toggle-connection');
+        const transmitButtons = document.querySelectorAll('.transmit');
+        const alertButtons = document.querySelectorAll('.mcc-alert');
+
+        alertButtons.forEach(button => {
+            button.addEventListener('click', async function () {
+                const channelName = this.getAttribute('data-channel');
+                const systemName = this.getAttribute('data-system');
+                const fileName = this.getAttribute('data-file');
+                const channel = JSON.parse(this.closest('.card').getAttribute('data-channel-object'));
+                const system = systems.find(s => s.name === systemName);
+
+                try {
+                    const response = await fetch(`/audio/${fileName}`);
+                    if (!response.ok) {
+                        throw new Error(`Failed to fetch audio file: ${response.statusText}`);
+                    }
+                    const arrayBuffer = await response.arrayBuffer();
+                    processPcmFile(arrayBuffer, channel, system);
+                } catch (error) {
+                    console.error(`Error processing PCM file: ${error}`);
+                }
+            });
+        });
+
+        toggleButtons.forEach(button => {
+            button.addEventListener('click', function () {
+                const channelName = this.getAttribute('data-channel');
+                const systemName = this.getAttribute('data-system');
+                const channel = JSON.parse(this.closest('.card').getAttribute('data-channel-object'));
+                const system = systems.find(s => s.name === systemName);
+
+                if (!pcmPlayer) {
+                    pcmPlayer = new PCMPlayer({encoding: '16bitInt', channels: 1, sampleRate: 8000});
+                }
+
+                if (!isIsRecording) {
+                    micCapture.captureMicrophone(() => {
+                        isIsRecording = true;
+                        console.log('Microphone captured');
+                    });
+                }
+
+                if (!connections[channelName]) {
+                    const ws = new WebSocket(`ws://${system.address}:${system.port}/client`);
+                    ws.onopen = () => {
+                        console.log(`Connected to system: ${system.name} for channel: ${channelName}`);
+                        button.classList.remove('btn-secondary');
+                        button.classList.add('btn-success');
+                        button.textContent = 'Connected';
+                    };
+                    ws.onclose = () => {
+                        console.log(`Disconnected from system: ${system.name} for channel: ${channelName}`);
+                        button.classList.remove('btn-success');
+                        button.classList.add('btn-secondary');
+                        button.textContent = 'On/Off';
+                        delete connections[channelName];
+                    };
+                    ws.onmessage = (message) => {
+                        const statusDiv = document.getElementById(`status-${channelName}`);
+                        const packet = JSON.parse(message.data);
+
+                        // console.log(`Received packet from system: ${system.name} for channel: ${channelName}; Packet: ${packet}`);
+
+                        if (packet.type === packetToNumber("AUDIO_DATA")) {
+                            if (packet.voiceChannel.SrcId !== system.rid && packet.voiceChannel.DstId === channel.tgid) {
+                                const binaryString = atob(packet.data);
+                                const len = binaryString.length;
+                                const bytes = new Uint8Array(len);
+                                for (let i = 0; i < len; i++) {
+                                    bytes[i] = binaryString.charCodeAt(i);
+                                }
+                                handleAudioData(bytes.buffer);
+                            }
+                        } else if (packet.type === packetToNumber("GRP_VCH_RSP")) {
+                            if (channel.tgid === packet.data.DstId && packet.data.SrcId !== system.rid) {
+                                if (statusDiv) {
+                                    statusDiv.innerHTML = `<p>ID: ${packet.data.SrcId}</p>`;
+                                }
+                            } else if (channel.tgid === packet.data.DstId && packet.data.SrcId === system.rid)
+                            {
+                                currentKeyedChannel = channel;
+                                currentKeyedSystem = system;
+                                currentKeyedChannel.frequency = packet.data.Channel;
+                                isTxing = true;
+                            }
+                        } else if (packet.type === packetToNumber("GRP_VCH_RLS")) {
+                            if (channel.tgid === packet.data.DstId) {
+                                if (statusDiv) {
+                                    statusDiv.innerHTML = '';
+                                }
+                            }
+                        }
+                    };
+                    connections[channelName] = ws;
+                } else {
+                    connections[channelName].close();
+                }
+            });
+        });
+
+        transmitButtons.forEach(button => {
+            button.addEventListener('mousedown', function () {
+                const channelName = this.getAttribute('data-channel');
+                const systemName = this.getAttribute('data-system');
+                const channel = JSON.parse(this.closest('.card').getAttribute('data-channel-object'));
+                const system = systems.find(s => s.name === systemName);
+
+                if (connections[channelName]) {
+                    connections[channelName].send(JSON.stringify({ type: packetToNumber("GRP_VCH_REQ"), data: { DstId: channel.tgid, SrcId: system.rid } }));
+
+                    currentKeyedChannel = channel;
+                    currentKeyedSystem = system;
+                    isTxing = true;
+                } else {
+                    console.log(`No connection for channel: ${channelName}`);
+                }
+            });
+
+            button.addEventListener('mouseup', function () {
+                const channelName = this.getAttribute('data-channel');
+                const systemName = this.getAttribute('data-system');
+                const channel = JSON.parse(this.closest('.card').getAttribute('data-channel-object'));
+                const system = systems.find(s => s.name === systemName);
+
+                if (connections[channelName]) {
+                    currentKeyedChannel.frequency = null;
+
+                    connections[channelName].send(JSON.stringify({ type: packetToNumber("GRP_VCH_RLS"), data: { DstId: channel.tgid, SrcId: system.rid } }));
+
+                    currentKeyedChannel = null;
+                    currentKeyedSystem = null;
+                    isTxing = false;
+                } else {
+                    console.log(`No connection for channel: ${channelName}`);
+                }
+            });
+        });
+    });
+
+    async function processPcmFile(arrayBuffer, channel, system) {
+        if (arrayBuffer.byteLength % 2 !== 0) {
+            const paddedBuffer = new ArrayBuffer(arrayBuffer.byteLength + 1);
+            const paddedView = new Uint8Array(paddedBuffer);
+            paddedView.set(new Uint8Array(arrayBuffer));
+            arrayBuffer = paddedBuffer;
+        }
+
+        const pcmData = new Uint8Array(arrayBuffer);
+
+        sendPcmData(pcmData, channel, system);
+    }
+
+    function sendPcmData(pcmData, channel, system) {
+        const chunkSize = EXPECTED_PCM_LENGTH;
+        let offset = 0;
+
+        currentKeyedChannel = channel;
+        currentKeyedSystem = system;
+        isTxingTone = true;
+
+        connections[channel.name].send(JSON.stringify({ type: packetToNumber("GRP_VCH_REQ"), data: { DstId: channel.tgid, SrcId: system.rid } }));
+
+        function sendChunk() {
+            if (offset < pcmData.length) {
+                let chunk = pcmData.slice(offset, offset + chunkSize);
+                if (chunk.length < chunkSize) {
+                    const paddedChunk = new Uint8Array(chunkSize);
+                    paddedChunk.set(chunk);
+                    chunk = paddedChunk;
+                }
+                const base64Chunk = btoa(String.fromCharCode(...chunk));
+                const response = {
+                    type: packetToNumber("AUDIO_DATA"),
+                    voiceChannel: {
+                        SrcId: system.rid,
+                        DstId: channel.tgid,
+                        Frequency: currentKeyedChannel.frequency
+                    },
+                    data: base64Chunk
+                };
+
+                const jsonString = JSON.stringify(response);
+                connections[channel.name].send(jsonString);
+                offset += chunkSize;
+                requestAnimationFrame(sendChunk);
+            } else {
+                connections[channel.name].send(JSON.stringify({ type: packetToNumber("GRP_VCH_RLS"), data: { DstId: channel.tgid, SrcId: system.rid } }));
+                isTxing = false;
+                isTxingTone = false;
+                currentKeyedChannel = null;
+            }
+        }
+
+        sendChunk();
+    }
+
+
+    function onAudioFrameReady(buffer, rms) {
+        if (isTxing && currentKeyedChannel !== null && currentKeyedSystem !== null && !isTxingTone) {
+            audioBuffer.push(...buffer);
+
+            if (audioBuffer.length >= EXPECTED_PCM_LENGTH) {
+                const fullFrame = audioBuffer.slice(0, EXPECTED_PCM_LENGTH);
+                audioBuffer = audioBuffer.slice(EXPECTED_PCM_LENGTH);
+
+                const response = {
+                    type: packetToNumber("AUDIO_DATA"),
+                    rms: rms * 30.0,
+                    voiceChannel: {
+                        SrcId: currentKeyedSystem.rid,
+                        DstId: currentKeyedChannel.tgid,
+                        Frequency: currentKeyedChannel.frequency
+                    },
+                    data: fullFrame
+                };
+
+                const jsonString = JSON.stringify(response);
+                connections[currentKeyedChannel.name].send(jsonString);
+            }
+        } else {
+            console.debug("Skipping audio send; not permitted to send");
+        }
+    }
+
+    function handleAudioData(data) {
+        const dataArray = new Uint8Array(data);
+
+        if (dataArray.length > 0) {
+            pcmPlayer.feed(dataArray);
+        } else {
+            console.debug('Received empty audio data array');
+        }
+    }
+</script>
+</body>
+</html>
