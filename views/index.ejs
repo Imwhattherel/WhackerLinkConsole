@@ -184,6 +184,7 @@
                         } else if (packet.type === packetToNumber("GRP_VCH_RSP")) {
                             if (channel.tgid === packet.data.DstId && packet.data.SrcId !== system.rid) {
                                 if (statusDiv) {
+                                    setIdBackgroundColor(`status-${channelName}`, 'lightgreen', 'darkgreen');
                                     statusDiv.innerHTML = `<p class="id">ID: ${packet.data.SrcId}</p>`;
                                 }
                             } else if (channel.tgid === packet.data.DstId && packet.data.SrcId === system.rid)
@@ -197,6 +198,24 @@
                             if (channel.tgid === packet.data.DstId) {
                                 if (statusDiv) {
                                     statusDiv.innerHTML = '';
+                                }
+                            }
+                        } else if (packet.type === packetToNumber("EMRG_ALRM_RSP")) {
+                            if (channel.tgid === packet.data.DstId) {
+                                console.log('Emergency alarm received')
+                                if (statusDiv) {
+                                    let emergencyAudio = new Audio('audio/emergency.wav');
+
+                                    setIdBackgroundColor(`status-${channelName}`, 'orange', 'darkorange');
+                                    statusDiv.innerHTML = `<p class="id">ID: ${packet.data.SrcId}</p>`;
+
+                                    emergencyAudio.loop = true;
+                                    emergencyAudio.play();
+
+                                    setTimeout(() => {
+                                        statusDiv.innerHTML = '';
+                                        emergencyAudio.pause();
+                                    }, 5000);
                                 }
                             }
                         }
@@ -246,6 +265,12 @@
             });
         });
     });
+
+    function setIdBackgroundColor(elementId, color1, color2) {
+        const element = document.getElementById(elementId);
+        element.style.setProperty('--bg-color1', color1);
+        element.style.setProperty('--bg-color2', color2);
+    }
 
     async function processPcmFile(arrayBuffer, channel, system) {
         if (arrayBuffer.byteLength % 2 !== 0) {
