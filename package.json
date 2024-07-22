@@ -42,11 +42,13 @@
       }
     ],
     "mac": {
-      "category": "public.app-category.utilities"
+      "category": "public.app-category.utilities",
+      "icon": "public/imgs/favicon.ico"
     },
     "win": {
       "target": "nsis",
-      "publisherName": "WhackerLink"
+      "publisherName": "WhackerLink",
+      "icon": "public/imgs/favicon.ico"
     },
     "linux": {
       "target": [
@@ -54,7 +56,8 @@
         "deb",
         "rpm"
       ],
-      "category": "Utility"
+      "category": "Utility",
+      "icon": "public/imgs/favicon.ico"
     }
   },
   "keywords": [],
