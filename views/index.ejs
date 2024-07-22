@@ -235,7 +235,7 @@
                 const system = systems.find(s => s.name === systemName);
 
                 if (connections[channelName]) {
-                    connections[channelName].send(JSON.stringify({ type: packetToNumber("GRP_VCH_REQ"), data: { DstId: channel.tgid, SrcId: system.rid } }));
+                    connections[channelName].send(JSON.stringify({ type: packetToNumber("GRP_VCH_REQ"), data: { DstId: channel.tgid, SrcId: system.rid, site: system.site } }));
 
                     currentKeyedChannel = channel;
                     currentKeyedSystem = system;
@@ -252,10 +252,9 @@
                 const system = systems.find(s => s.name === systemName);
 
                 if (connections[channelName]) {
+                    connections[channelName].send(JSON.stringify({ type: packetToNumber("GRP_VCH_RLS"), data: { DstId: channel.tgid, SrcId: system.rid, Channel: currentKeyedChannel.frequency, site: currentKeyedSystem.site } }));
+
                     currentKeyedChannel.frequency = null;
-
-                    connections[channelName].send(JSON.stringify({ type: packetToNumber("GRP_VCH_RLS"), data: { DstId: channel.tgid, SrcId: system.rid } }));
-
                     currentKeyedChannel = null;
                     currentKeyedSystem = null;
                     isTxing = false;
@@ -282,6 +281,7 @@
 
         const pcmData = new Uint8Array(arrayBuffer);
 
+        pcmPlayer.feed(pcmData);
         sendPcmData(pcmData, channel, system);
     }
 
@@ -293,7 +293,7 @@
         currentKeyedSystem = system;
         isTxingTone = true;
 
-        connections[channel.name].send(JSON.stringify({ type: packetToNumber("GRP_VCH_REQ"), data: { DstId: channel.tgid, SrcId: system.rid } }));
+        connections[channel.name].send(JSON.stringify({ type: packetToNumber("GRP_VCH_REQ"), data: { DstId: channel.tgid, SrcId: system.rid, site: currentKeyedSystem.site } }));
         function sendChunk() {
             console.log("Offset: " + offset + "; Length: " + pcmData.length)
             if (offset < pcmData.length) {
@@ -309,8 +309,9 @@
                     voiceChannel: {
                         SrcId: system.rid,
                         DstId: channel.tgid,
-                        Frequency: currentKeyedChannel.frequency
+                        Frequency: currentKeyedChannel.frequency,
                     },
+                    site: currentKeyedSystem.site,
                     data: base64Chunk
                 };
 
@@ -321,11 +322,11 @@
             } else {
                 setTimeout(() => {
                     console.log("Release tone");
-                    connections[channel.name].send(JSON.stringify({ type: packetToNumber("GRP_VCH_RLS"), data: { DstId: channel.tgid, SrcId: system.rid } }));
+                    connections[channel.name].send(JSON.stringify({ type: packetToNumber("GRP_VCH_RLS"), data: { DstId: channel.tgid, SrcId: system.rid, Channel: currentKeyedChannel.frequency, site: currentKeyedSystem.site } }));
                     isTxing = false;
                     isTxingTone = false;
                     currentKeyedChannel = null;
-                }, 1500);
+                }, 3000);
             }
         }
 
@@ -349,6 +350,7 @@
                         DstId: currentKeyedChannel.tgid,
                         Frequency: currentKeyedChannel.frequency
                     },
+                    site: currentKeyedSystem.site,
                     data: fullFrame
                 };
 
