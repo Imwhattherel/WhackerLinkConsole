@@ -8,7 +8,7 @@ function createWindow() {
     const win = new BrowserWindow({
         width: 800,
         height: 600,
-        icon: path.join(__dirname, 'public/imgs/whackerlink-logo.png'),
+        icon: path.join(__dirname, 'public/imgs/whackerlink-logo-256.png'),
         webPreferences: {
             contextIsolation: true,
             enableRemoteModule: false,

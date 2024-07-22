@@ -9,7 +9,7 @@ Put your fivem codeplugs into the codeplugs directory
 ### All OS
 `npm run build`
 ### Windows
-`npm run build:win`
+`npm run build:windows`
 ### Mac
 `npm run build:mac`
 ### Linux

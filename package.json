@@ -43,12 +43,12 @@
     ],
     "mac": {
       "category": "public.app-category.utilities",
-      "icon": "public/imgs/favicon.ico"
+      "icon": "public/imgs/whackerlink-logo-256.png"
     },
     "win": {
       "target": "nsis",
       "publisherName": "WhackerLink",
-      "icon": "public/imgs/favicon.ico"
+      "icon": "public/imgs/whackerlink-logo-256.png"
     },
     "linux": {
       "target": [
@@ -57,7 +57,7 @@
         "rpm"
       ],
       "category": "Utility",
-      "icon": "public/imgs/favicon.ico"
+      "icon": "public/imgs/whackerlink-logo-256.png"
     }
   },
   "keywords": [],
