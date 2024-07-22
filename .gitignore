@@ -1,5 +1,6 @@
-# Condeplugs
+# Codeplugs
 codeplugs/*
+!codeplugs/.gitkeep
 !codeplugs/codeplug.example.yml
 
 # IDE
@@ -97,6 +98,8 @@ out
 # Nuxt.js build / generate output
 .nuxt
 dist
+dist/
+dist/**/*
 
 # Gatsby files
 .cache/

@@ -4,7 +4,58 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "electron .",
+    "build": "electron-builder -mwl",
+    "build:linux": "electron-builder --linux",
+    "build:windows": "electron-builder --windows",
+    "build:mac": "electron-builder --mac"
+  },
+  "build": {
+    "appId": "com.whackerlink.whackerlinkconsole",
+    "productName": "WhackerLinkConsole",
+    "directories": {
+      "buildResources": "build"
+    },
+    "files": [
+      "index.js",
+      "public/**/*",
+      "codeplugs/**/*",
+      "views/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "public/",
+        "to": "public/",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "codeplugs/",
+        "to": "codeplugs/",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "views/",
+        "to": "views/",
+        "filter": ["**/*"]
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.utilities"
+    },
+    "win": {
+      "target": "nsis",
+      "publisherName": "WhackerLink"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb",
+        "rpm"
+      ],
+      "category": "Utility"
+    }
   },
   "keywords": [],
   "author": "",
@@ -13,5 +64,9 @@
     "ejs": "^3.1.10",
     "express": "^4.19.2",
     "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "electron": "^31.2.1",
+    "electron-builder": "^24.13.3"
   }
 }
